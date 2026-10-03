@@ -13,6 +13,7 @@ Platforms: web (static export on the VPS) and Android (sideloaded APK).
 - Click count and last-click time per link. No IPs, user agents, referrers or other analytics.
 - Slugs: 1–64 of `[A-Za-z0-9_-]`, case-sensitive, unique across the app. App routes and static files are reserved.
 - Targets: absolute `http:`/`https:` URLs up to 2048 characters, never on `alp.pknspace.com` itself.
+- Android: share a URL from any app into alp, and New link opens with it filled in.
 - Light, dark or system theme.
 
 ## Stack
@@ -170,4 +171,5 @@ adb install -r dist/alp-preview-*.apk
   - `lib/slugs.ts`: the slug pattern, the one reserved-slug list, target validation and the random slug. `scripts/check-reserved.mts` fails the web deploy if a new top-level route or file isn't reserved.
   - `http.ts`: the Convex Auth routes and `GET /r/{slug}`, the only public endpoint.
   - `users.ts`: `me`, for the email in Settings.
+- **Share target** (Android): `expo-share-intent` registers a `SEND text/*` intent filter. The root layout takes the first `http(s)` URL from the shared text (`src/lib/share.ts`) and opens `/link/new?target=…`; a share that arrives signed out waits until sign-in. `+native-intent.tsx` keeps the share deep link from hitting not-found.
 - **Auth tokens** are kept in `expo-secure-store` on Android and `localStorage` on web.
