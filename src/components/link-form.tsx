@@ -1,8 +1,9 @@
 import { useState, type ReactNode } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView, View } from "react-native";
+import { View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { CmpButton } from "@/components/cmp/cmp-button";
 import { CmpInput } from "@/components/cmp/cmp-field";
+import { CmpKeyboardAwareScrollView } from "@/components/cmp/cmp-keyboard-aware-scroll-view";
 import { CmpSwitch } from "@/components/cmp/cmp-switch";
 import { CmpText } from "@/components/cmp/cmp-text";
 import { errorCode, errorMessage } from "@/lib/errors";
@@ -52,57 +53,51 @@ export function LinkForm({ initial, mode, submitLabel, onSubmit, header, footer 
 
   return (
     <SafeAreaView edges={["bottom"]} className="bg-background flex-1">
-      <KeyboardAvoidingView
-        className="flex-1"
-        behavior={Platform.OS === "ios" ? "padding" : undefined}>
-        <ScrollView
-          contentContainerClassName="mx-auto w-full max-w-xl gap-5 p-4 pb-12"
-          keyboardShouldPersistTaps="handled">
-          {header}
+      <CmpKeyboardAwareScrollView contentContainerClassName="mx-auto w-full max-w-xl gap-5 p-4 pb-12">
+        {header}
+        <CmpInput
+          label={s.target}
+          value={target}
+          onChangeText={setTarget}
+          placeholder={s.targetPlaceholder}
+          error={targetError}
+          autoCapitalize="none"
+          autoCorrect={false}
+          keyboardType="url"
+          textContentType="URL"
+          autoFocus={mode === "create" && !initial.target}
+        />
+        {mode === "create" && (
           <CmpInput
-            label={s.target}
-            value={target}
-            onChangeText={setTarget}
-            placeholder={s.targetPlaceholder}
-            error={targetError}
+            label={s.slug}
+            hint={s.slugHint}
+            value={slug}
+            onChangeText={setSlug}
+            error={slugError}
             autoCapitalize="none"
             autoCorrect={false}
-            keyboardType="url"
-            textContentType="URL"
-            autoFocus={mode === "create" && !initial.target}
+            maxLength={64}
+            onSubmitEditing={submit}
           />
-          {mode === "create" && (
-            <CmpInput
-              label={s.slug}
-              hint={s.slugHint}
-              value={slug}
-              onChangeText={setSlug}
-              error={slugError}
-              autoCapitalize="none"
-              autoCorrect={false}
-              maxLength={64}
-              onSubmitEditing={submit}
-            />
-          )}
-          <View className="flex-row items-center justify-between gap-4">
-            <View className="flex-1 gap-0.5">
-              <CmpText>{s.enabled}</CmpText>
-              <CmpText variant="muted" className="text-sm">
-                {s.enabledHint}
-              </CmpText>
-            </View>
-            <CmpSwitch checked={enabled} onCheckedChange={setEnabled} />
+        )}
+        <View className="flex-row items-center justify-between gap-4">
+          <View className="flex-1 gap-0.5">
+            <CmpText>{s.enabled}</CmpText>
+            <CmpText variant="muted" className="text-sm">
+              {s.enabledHint}
+            </CmpText>
           </View>
-          {error && <CmpText className="text-destructive text-sm">{error}</CmpText>}
-          <CmpButton
-            label={submitLabel}
-            loading={submitting}
-            disabled={!target.trim()}
-            onPress={submit}
-          />
-          {footer}
-        </ScrollView>
-      </KeyboardAvoidingView>
+          <CmpSwitch checked={enabled} onCheckedChange={setEnabled} />
+        </View>
+        {error && <CmpText className="text-destructive text-sm">{error}</CmpText>}
+        <CmpButton
+          label={submitLabel}
+          loading={submitting}
+          disabled={!target.trim()}
+          onPress={submit}
+        />
+        {footer}
+      </CmpKeyboardAwareScrollView>
     </SafeAreaView>
   );
 }
