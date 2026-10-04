@@ -24,7 +24,7 @@ export const strings = {
     newLink: "New link",
     settings: "Settings",
     search: "Search by slug or target",
-    empty: "No links yet. Create one with New link.",
+    empty: "No links yet. Tap + to create one.",
     noMatches: "No links match your search.",
     loadMore: "Load more",
     copy: "Copy short URL",
