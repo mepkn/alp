@@ -19,8 +19,7 @@ Platforms: web (static export on the VPS) and Android (sideloaded APK).
 ## Stack
 
 Expo (SDK 57) · Expo Router · TypeScript · NativeWind + React Native Reusables ·
-Convex (database, auth, HTTP redirect) · Convex Auth (password) ·
-`react-native-keyboard-controller` (keyboard handling).
+Convex (database, auth, HTTP redirect) · Convex Auth (password).
 
 ## Development
 
@@ -163,7 +162,6 @@ adb install -r dist/alp-preview-*.apk
 ## How it works
 
 - **The app** (`src/`) uses Expo Router, NativeWind and React Native Reusables. The RNR primitives live in `src/components/ui/`, and screens only use the app's own wrappers in `src/components/cmp/cmp-*.tsx`. All strings are in `src/lib/strings.ts`.
-- **Keyboard** (`react-native-keyboard-controller`, `KeyboardProvider` in the root layout). The auth and link forms scroll the focused field above the keyboard (`CmpKeyboardAwareScrollView`); on web nothing moves. A future dialog with a text field should copy `components/ui/dialog.tsx` and `cmp-prompt-dialog.tsx` from note-shote, which rise by half the keyboard height.
   - `(app)/index`: the paginated list (`usePaginatedQuery`) with a client-side search over the loaded pages.
   - `(app)/link/new` (accepts `?target=`) and `(app)/link/[id]`: the shared `LinkForm`.
 - **Convex** (`convex/`) is the entire backend.
