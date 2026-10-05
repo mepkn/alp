@@ -17,6 +17,7 @@ export const RESERVED_SLUGS: ReadonlySet<string> = new Set([
   "sign-in",
   "sign-up",
   "settings",
+  "search",
   "link",
   "_sitemap",
   // static files and folders

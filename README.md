@@ -9,7 +9,7 @@ Platforms: web (static export on the VPS) and Android (sideloaded APK).
 
 - **Public redirects.** `GET /<slug>` returns a `302` to the target, with `Cache-Control: no-store` so every visit is counted. Unknown or disabled slugs get a plain `404` page. No sign-in, interstitial or JavaScript.
 - **Private management** after sign-in: create (custom slug or a random 6-character one), edit the target, enable or disable, delete (with a confirmation), copy the short URL with one tap.
-- Search by slug or target; newest first.
+- Links list, newest first, and a Search tab that searches all links by slug or target on the server.
 - Click count and last-click time per link. No IPs, user agents, referrers or other analytics.
 - Slugs: 1–64 of `[A-Za-z0-9_-]`, case-sensitive, unique across the app. App routes and static files are reserved.
 - Targets: absolute `http:`/`https:` URLs up to 2048 characters, never on `alp.pknspace.com` itself.
@@ -162,7 +162,9 @@ adb install -r dist/alp-preview-*.apk
 ## How it works
 
 - **The app** (`src/`) uses Expo Router, NativeWind and React Native Reusables. The RNR primitives live in `src/components/ui/`, and screens only use the app's own wrappers in `src/components/cmp/cmp-*.tsx`. All strings are in `src/lib/strings.ts`.
-  - `(app)/index`: the paginated list (`usePaginatedQuery`) with a client-side search over the loaded pages.
+  - `(app)/(tabs)`: Links and Search tabs (a labelled left sidebar from 768px wide).
+  - `(app)/(tabs)/index`: the paginated list (`usePaginatedQuery`), loading more on scroll.
+  - `(app)/(tabs)/search`: debounced, paginated server search (`links.search`, search index `search_text`).
   - `(app)/link/new` (accepts `?target=`) and `(app)/link/[id]`: the shared `LinkForm`.
 - **Convex** (`convex/`) is the entire backend.
   - `schema.ts`: `links` (`by_slug`, `by_user`), plus the Convex Auth tables.

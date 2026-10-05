@@ -14,7 +14,10 @@ export default defineSchema({
     clicks: v.number(),
     lastClickedAt: v.optional(v.number()), // UTC ms
     updatedAt: v.number(), // UTC ms
+    // slug and target split into words, kept in step by create/update for the search index.
+    searchText: v.string(),
   })
     .index("by_slug", ["slug"])
-    .index("by_user", ["userId"]),
+    .index("by_user", ["userId"])
+    .searchIndex("search_text", { searchField: "searchText", filterFields: ["userId"] }),
 });

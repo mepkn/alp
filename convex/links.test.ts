@@ -265,3 +265,38 @@ describe("redirect", () => {
     expect((await getLink(t, "off"))?.clicks).toBe(0);
   });
 });
+
+describe("search", () => {
+  async function searchSlugs(as: Awaited<ReturnType<typeof signedInUser>>["as"], query: string) {
+    return (await as.query(api.links.search, { query, ...page })).page.map((l) => l.slug).sort();
+  }
+
+  test("matches slug and target words across all the caller's links, prefix on the last word", async () => {
+    const t = newTest();
+    const alice = await signedInUser(t, "alice@example.com");
+    const bob = await signedInUser(t, "bob@example.com");
+    await alice.as.mutation(api.links.create, { target: "https://example.com/recipes", slug: "dinner" });
+    await alice.as.mutation(api.links.create, { target: "https://docs.example.org/guide", slug: "docs" });
+    await bob.as.mutation(api.links.create, { target: "https://example.com/recipes", slug: "bobs" });
+
+    expect(await searchSlugs(alice.as, "recipes")).toEqual(["dinner"]);
+    expect(await searchSlugs(alice.as, "dinn")).toEqual(["dinner"]);
+    expect(await searchSlugs(alice.as, "example")).toEqual(["dinner", "docs"]);
+    // Any matching word counts; the best match comes first.
+    const ranked = await alice.as.query(api.links.search, { query: "example.com/rec", ...page });
+    expect(ranked.page[0].slug).toBe("dinner");
+    expect(await searchSlugs(alice.as, " / ")).toEqual([]);
+  });
+
+  test("follows target edits", async () => {
+    const t = newTest();
+    const alice = await signedInUser(t, "alice@example.com");
+    const { _id } = await alice.as.mutation(api.links.create, {
+      target: "https://example.com/old",
+      slug: "moved",
+    });
+    await alice.as.mutation(api.links.update, { id: _id, target: "https://example.com/fresh" });
+    expect(await searchSlugs(alice.as, "old")).toEqual([]);
+    expect(await searchSlugs(alice.as, "fresh")).toEqual(["moved"]);
+  });
+});

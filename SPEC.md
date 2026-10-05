@@ -23,7 +23,7 @@ conventions** wherever this spec doesn't say otherwise. Read yaad-dila's README,
 - **Slugs:**
   - 1–64 chars, `[A-Za-z0-9_-]`, matched **case-sensitively**, unique across the whole app.
   - Reserved slugs are refused because they collide with app routes or static files: `sign-in`,
-    `sign-up`, `settings`, `index`, `_expo`, `assets`, `favicon.ico`, `r`, `api`, plus anything that
+    `sign-up`, `settings`, `search`, `index`, `_expo`, `assets`, `favicon.ico`, `r`, `api`, plus anything that
     is an exported route or a top-level file in `dist/`. Keep the list in one place in `convex/lib/`.
 - **Targets:** must parse as an absolute `http:` or `https:` URL, max 2048 chars. Refuse targets on
   `alp.pknspace.com` itself (no redirect loops).
@@ -68,11 +68,13 @@ links: defineTable({
 ```
 - Use `_id` and `_creationTime`. Index every query; no table scans.
 - List with `by_user`, ordered `desc`, paginated (`usePaginatedQuery`).
-- Search can filter the user's page client-side in v1. Use a search index only if it's simple.
+- Search uses the `search_text` search index (filtered by `userId`) on `searchText`: slug and target split
+  into words, set by `create` and `update`. Paginated; it covers every link, not just loaded pages.
 
 ## Convex API
 
 - `links.list({ paginationOpts })` query: the caller's links, newest first.
+- `links.search({ query, paginationOpts })` query: the caller's links matching the words, best match first.
 - `links.create({ target, slug? })` mutation → `{ _id, slug }`.
 - `links.update({ id, target?, enabled? })` mutation. The slug can't be changed; delete and recreate instead.
 - `links.remove({ id })` mutation.
@@ -88,7 +90,10 @@ links: defineTable({
 ## Screens (Expo Router)
 
 - `(auth)/sign-in`, `(auth)/sign-up`: the same form component as yaad-dila.
-- `(app)/index`: the link list, with the search box and a "New link" button.
+- `(app)/(tabs)`: two tabs, Links and Search. Bottom tabs on phones; from 768px wide a labelled sidebar
+  on the left. The settings gear is in the Links header.
+- `(app)/(tabs)/index`: the link list with a "New link" button; the next page loads on scroll.
+- `(app)/(tabs)/search`: a search box (focused on open, debounced) and paginated server results.
   - Each row shows the short URL, the target (truncated), clicks, enabled state and a copy button.
 - `(app)/link/new` and `(app)/link/[id]`: the form (target, slug on create only, enabled), with delete on edit.
   - These routes must be listed as reserved slugs (`link`).

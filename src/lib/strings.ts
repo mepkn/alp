@@ -20,13 +20,18 @@ export const strings = {
     haveAccount: "Already have an account? Log in",
   },
 
+  tabs: {
+    links: "Links",
+    search: "Search",
+  },
+
   links: {
     newLink: "New link",
     settings: "Settings",
     search: "Search by slug or target",
+    searchHint: "Searches all your links, by whole words and word starts.",
     empty: "No links yet. Tap + to create one.",
     noMatches: "No links match your search.",
-    loadMore: "Load more",
     copy: "Copy short URL",
     copied: "Copied",
     disabled: "Disabled",

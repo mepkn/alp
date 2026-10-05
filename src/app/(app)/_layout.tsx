@@ -6,7 +6,7 @@ import { strings } from "@/lib/strings";
 export default function AppLayout() {
   return (
     <Stack screenOptions={{ headerTitleAlign: "left", title: strings.appName }}>
-      <Stack.Screen name="index" />
+      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="link/new" options={{ headerTitle: strings.form.newTitle }} />
       <Stack.Screen name="link/[id]" options={{ headerTitle: strings.form.editTitle }} />
       <Stack.Screen name="settings" options={{ headerTitle: strings.settings.title }} />

@@ -47,6 +47,31 @@ export const list = query({
   },
 });
 
+// Splits URLs and slugs into plain words ("https://a.com/x-y" → "https a com x y")
+// so each part is searchable. Used on both the stored text and the query.
+const searchWords = (text: string) =>
+  text.replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+const searchText = (slug: string, target: string) => searchWords(`${slug} ${target}`);
+
+// Searches all of the caller's links by slug and target words (the last word
+// matches as a prefix), best match first. An empty query returns nothing.
+export const search = query({
+  args: { query: v.string(), paginationOpts: paginationOptsValidator },
+  returns: paginationResultValidator(linkDoc),
+  handler: async (ctx, { query: text, paginationOpts }) => {
+    const userId = await requireUserId(ctx);
+    const words = searchWords(text);
+    if (!words) return { page: [], isDone: true, continueCursor: "" };
+    return await ctx.db
+      .query("links")
+      .withSearchIndex("search_text", (q) =>
+        q.search("searchText", words).eq("userId", userId),
+      )
+      .paginate(paginationOpts);
+  },
+});
+
+
 // One of the caller's links, or null if it's gone or someone else's.
 export const get = query({
   args: { id: v.id("links") },
@@ -94,6 +119,7 @@ export const create = mutation({
       enabled: true,
       clicks: 0,
       updatedAt: Date.now(),
+      searchText: searchText(slug, target),
     });
     return { _id, slug };
   },
@@ -105,13 +131,14 @@ export const update = mutation({
   returns: v.null(),
   handler: async (ctx, { id, target, enabled }) => {
     const userId = await requireUserId(ctx);
-    await requireOwnLink(ctx, userId, id);
-    const patch: { target?: string; enabled?: boolean; updatedAt: number } = {
+    const link = await requireOwnLink(ctx, userId, id);
+    const patch: { target?: string; searchText?: string; enabled?: boolean; updatedAt: number } = {
       updatedAt: Date.now(),
     };
     if (target !== undefined) {
       patch.target = target.trim();
       checkTarget(patch.target);
+      patch.searchText = searchText(link.slug, patch.target);
     }
     if (enabled !== undefined) patch.enabled = enabled;
     await ctx.db.patch("links", id, patch);
