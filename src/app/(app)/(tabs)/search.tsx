@@ -6,11 +6,11 @@ import { api } from "@convex/_generated/api";
 import { CmpInput } from "@/components/cmp/cmp-field";
 import { CmpText } from "@/components/cmp/cmp-text";
 import { LinkRow } from "@/components/link-row";
+import { PAGE_SIZE } from "@/lib/links";
 import { strings } from "@/lib/strings";
 import { cn } from "@/lib/utils";
 
 const s = strings.links;
-const PAGE_SIZE = 30;
 const DEBOUNCE_MS = 250;
 
 // Searches all of the user's links on the server, not just a loaded page.

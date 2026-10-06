@@ -6,10 +6,10 @@ import { api } from "@convex/_generated/api";
 import { CmpButton } from "@/components/cmp/cmp-button";
 import { CmpText } from "@/components/cmp/cmp-text";
 import { LinkRow } from "@/components/link-row";
+import { PAGE_SIZE } from "@/lib/links";
 import { strings } from "@/lib/strings";
 
 const s = strings.links;
-const PAGE_SIZE = 50;
 
 export default function LinksScreen() {
   const { results, status, loadMore } = usePaginatedQuery(
