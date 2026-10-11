@@ -105,8 +105,9 @@ and the Android app built with EAS.
         root * /var/www/alp
         encode gzip
 
-        @static file {path}
+        @static file {path} {path}/index.html
         handle @static {
+              try_files {path} {path}/index.html
               file_server
         }
 
