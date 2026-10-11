@@ -3,7 +3,7 @@
 A private link shortener at <https://alp.pknspace.com>. Only allowlisted emails can create and
 manage links; anyone can open a short link, e.g. `alp.pknspace.com/cv` redirects to the long URL.
 
-Platforms: web (static export on the VPS) and Android (sideloaded APK).
+Platforms: web (a Vite SPA in `web/`, on the VPS) and Android (Expo, sideloaded APK).
 
 ## Features
 
@@ -18,8 +18,9 @@ Platforms: web (static export on the VPS) and Android (sideloaded APK).
 
 ## Stack
 
-Expo (SDK 57) · Expo Router · TypeScript · NativeWind + React Native Reusables ·
-Convex (database, auth, HTTP redirect) · Convex Auth (password).
+Android: Expo (SDK 57) · Expo Router · NativeWind + React Native Reusables ·
+Web: React 19 · Vite · Tailwind CSS v4 · shadcn/ui (Base UI) ·
+TypeScript · Convex (database, auth, HTTP redirect) · Convex Auth (password).
 
 ## Development
 
@@ -29,6 +30,7 @@ Requires Node 22.18+ (`.nvmrc` pins 22).
 
 ```sh
 npm install
+npm run web:install       # the web app has its own node_modules
 npx convex dev            # first run: choose a local deployment (no account needed)
 ```
 
@@ -45,7 +47,7 @@ This writes `EXPO_PUBLIC_CONVEX_URL` to `.env.local`. Keep it running; it redepl
 
 ```sh
 npx @convex-dev/auth      # interactive: generates JWT_PRIVATE_KEY + JWKS
-npx convex env set SITE_URL http://localhost:8081
+npx convex env set SITE_URL http://localhost:5173
 npx convex env set ALLOWED_EMAILS you@example.com   # comma-separated; nobody else can sign up or sign in
 ```
 
@@ -54,7 +56,7 @@ npx convex env set ALLOWED_EMAILS you@example.com   # comma-separated; nobody el
 ### 3. Run the app
 
 ```sh
-npm run web                      # browser
+npm run web:dev                  # web app on http://localhost:5173
 npm run android                  # build and install a development build on a USB phone
 npx expo start --dev-client      # Metro for the development build
 ```
@@ -64,16 +66,16 @@ npx expo start --dev-client      # Metro for the development build
 | Command | What it does |
 |---|---|
 | `npx convex dev` | Local Convex backend with hot reload |
-| `npm run web` | Metro for the browser |
+| `npm run web:install` | Install the web app's dependencies (`web/node_modules`) |
+| `npm run web:dev` | Vite dev server for the web app |
 | `npm run android` | Build and install the development build on a USB phone |
 | `npm run typecheck` | App and `convex/` typecheck |
 | `npm run lint` | ESLint (Expo config) |
 | `npm test` | convex-test: allowlist, ownership, slug and URL rules, redirect |
-| `npm run check` | Typecheck, lint and tests |
+| `npm run check` | Typecheck, lint and tests, for the Android app and `web/` |
 | `npm run icons` | Regenerate the app icon and splash images |
-| `npm run build:web` | Static web export into `dist/web/` |
 | `npm run deploy:backend` | Checks, then deploys `convex/` to production |
-| `npm run deploy:web` | Checks, exports the web app, checks reserved slugs, rsyncs `dist/web/` to the VPS |
+| `npm run deploy:web` | Checks, builds `web/`, checks reserved slugs, rsyncs `web/dist/` to the VPS |
 | `npm run deploy:web:dry` | The same, but rsync only shows what would change |
 | `npm run build:android:preview` | Installable APK, built on EAS cloud |
 | `npm run build:android:preview:local` | The same APK, built on this Mac into `dist/` |
@@ -103,16 +105,8 @@ and the Android app built with EAS.
         root * /var/www/alp
         encode gzip
 
-        @static file {path} {path}.html {path}/index.html
+        @static file {path}
         handle @static {
-              try_files {path} {path}.html {path}/index.html
-              file_server
-        }
-
-        # The edit screen is one exported page for every id.
-        @edit path_regexp ^/link/[^/]+$
-        handle @edit {
-              rewrite * /link/[id].html
               file_server
         }
 
@@ -125,9 +119,9 @@ and the Android app built with EAS.
   }
   ```
 
-  A file in the export wins (`{path}.html` because Expo writes routes as `sign-in.html` etc.);
-  every other path goes to the Convex redirect at `/r/<slug>`, so Convex's custom-domain feature
-  isn't needed. Slugs can't contain `/`, so `/link/<id>` never shadows one.
+  A file in the build wins (`/`, `/assets/…`, `/favicon.svg`); the web app is a single page with
+  no client-side routes, so every other path goes to the Convex redirect at `/r/<slug>` and
+  Convex's custom-domain feature isn't needed.
   A cloudflared Public Hostname maps `alp.pknspace.com` → `http://localhost:8080`.
 
 ### Backend
@@ -140,14 +134,13 @@ npm run deploy:backend    # checks, then npx convex deploy to production
 
 ```sh
 npm run deploy:web:dry    # see what would change
-npm run deploy:web        # checks, export, reserved-slug check, rsync --delete
+npm run deploy:web        # checks, vite build, reserved-slug check, rsync --delete
 ```
 
 After a deploy, check both halves of the domain:
 
 ```sh
-curl -sI https://alp.pknspace.com/sign-in | head -1          # 200, the app
-curl -sI https://alp.pknspace.com/link/abc | head -1         # 200, the edit page
+curl -sI https://alp.pknspace.com/ | head -1                 # 200, the app
 curl -sI https://alp.pknspace.com/<a-slug> | grep -i -e ^HTTP -e ^location   # 302
 curl -sI https://alp.pknspace.com/no-such-slug | head -1     # 404
 ```
@@ -161,7 +154,8 @@ adb install -r dist/alp-preview-*.apk
 
 ## How it works
 
-- **The app** (`src/`) uses Expo Router, NativeWind and React Native Reusables. The RNR primitives live in `src/components/ui/`, and screens only use the app's own wrappers in `src/components/cmp/cmp-*.tsx`. All strings are in `src/lib/strings.ts`.
+- **The web app** (`web/`) is a separate Vite + React + shadcn/ui app with its own `package.json`: one page with the links list, server search, and create/edit in a dialog. It imports the backend from `../convex` through the `@convex` alias (`web/vite.config.ts` dedupes `convex` and `react` so `../convex` uses the web copies). In dev it reads `EXPO_PUBLIC_CONVEX_URL` from the root `.env.local`; `deploy:web` passes the production URL as `VITE_CONVEX_URL`.
+- **The Android app** (`src/`) uses Expo Router, NativeWind and React Native Reusables. The RNR primitives live in `src/components/ui/`, and screens only use the app's own wrappers in `src/components/cmp/cmp-*.tsx`. All strings are in `src/lib/strings.ts`.
   - `(app)/(tabs)`: Links and Search tabs (a labelled left sidebar from 768px wide).
   - `(app)/(tabs)/index`: the paginated list (`usePaginatedQuery`), loading more on scroll.
   - `(app)/(tabs)/search`: debounced, paginated server search (`links.search`, search index `search_text`).
@@ -170,8 +164,8 @@ adb install -r dist/alp-preview-*.apk
   - `schema.ts`: `links` (`by_slug`, `by_user`), plus the Convex Auth tables.
   - `auth.ts`: Convex Auth with the Password provider. `profile()` runs for sign-up and sign-in before anything is stored and refuses emails not in `ALLOWED_EMAILS` with a generic `notAllowed`. `lib/access.ts` `requireUserId` re-checks the list on every call, so removing an email also ends that user's sessions.
   - `links.ts`: `list`, `get`, `create`, `update`, `remove` for the signed-in owner; every id passed in is loaded and its `userId` checked (`linkNotFound` otherwise). `resolve` (internalQuery) and `recordClick` (internalMutation) serve the redirect only.
-  - `lib/slugs.ts`: the slug pattern, the one reserved-slug list, target validation and the random slug. `scripts/check-reserved.mts` fails the web deploy if a new top-level route or file isn't reserved.
+  - `lib/slugs.ts`: the slug pattern, the one reserved-slug list, target validation and the random slug. `scripts/check-reserved.mts` fails the web deploy if a new top-level file in `web/dist` isn't reserved. The old Expo route names stay reserved so existing links are unaffected.
   - `http.ts`: the Convex Auth routes and `GET /r/{slug}`, the only public endpoint.
   - `users.ts`: `me`, for the email in Settings.
 - **Share target** (Android): `expo-share-intent` registers a `SEND text/*` intent filter. The root layout takes the first `http(s)` URL from the shared text (`src/lib/share.ts`) and opens `/link/new?target=…`; a share that arrives signed out waits until sign-in. `+native-intent.tsx` keeps the share deep link from hitting not-found.
-- **Auth tokens** are kept in `expo-secure-store` on Android and `localStorage` on web.
+- **Auth tokens** are kept in `expo-secure-store` on Android and `localStorage` in the web app.

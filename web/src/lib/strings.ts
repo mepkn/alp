@@ -1,0 +1,82 @@
+// Every user-facing string, in one place. English only.
+export const strings = {
+  appName: "Alp",
+  somethingWentWrong: "Something went wrong. Please try again.",
+  cancel: "Cancel",
+
+  auth: {
+    email: "Email",
+    password: "Password",
+    passwordHint: "At least 8 characters.",
+    signInTitle: "Sign in",
+    signInSubtitle: "Sign in to manage your short links.",
+    signUpTitle: "Create account",
+    signUpSubtitle: "Only invited emails can sign up.",
+    logIn: "Sign in",
+    signUp: "Create account",
+    logOut: "Sign out",
+    noAccount: "First time? Create your account",
+    haveAccount: "Already have an account? Sign in",
+  },
+
+  account: {
+    label: "Account",
+    signedInAs: "Signed in as",
+  },
+
+  links: {
+    newLink: "New link",
+    search: "Search by slug or target",
+    clearSearch: "Clear search",
+    empty: "No links yet. Create your first one.",
+    noMatches: "No links match your search.",
+    loadMore: "Load more",
+    copy: "Copy short URL",
+    copied: "Copied",
+    edit: "Edit",
+    delete: "Delete",
+    open: "Open target",
+    actions: "Link actions",
+    disabled: "Disabled",
+    clicks: (n: number) => (n === 1 ? "1 click" : `${n} clicks`),
+    lastClick: (when: string) => `last ${when}`,
+    deleted: "Link deleted",
+    deleteTitle: "Delete this link?",
+    deleteDescription: (shortUrl: string) =>
+      `${shortUrl} stops working right away, and its click count is lost. This can't be undone.`,
+  },
+
+  form: {
+    newTitle: "New link",
+    newDescription: "Paste a long URL and pick a slug, or leave the slug empty for a random one.",
+    editTitle: "Edit link",
+    target: "Target URL",
+    targetPlaceholder: "https://example.com/a/long/page",
+    slug: "Slug",
+    slugPlaceholder: "random",
+    slugHint: "Letters, digits, - and _. Case-sensitive. Leave empty for a random one.",
+    slugFixed: "The slug can't be changed. Delete the link and create a new one instead.",
+    enabled: "Enabled",
+    enabledHint: "Disabled links return “not found”.",
+    create: "Create",
+    save: "Save",
+    created: (label: string) => `Created ${label}`,
+    saved: "Saved",
+  },
+
+  // Server error codes (plain-string ConvexErrors).
+  errors: {
+    notAuthenticated: "Your session has expired. Please sign in again.",
+    notAllowed: "This account isn't allowed to use this app.",
+    linkNotFound: "This link doesn't exist or was deleted.",
+    invalidUrl: "Enter a full http:// or https:// URL that isn't an alp link.",
+    targetTooLong: "The URL is over 2048 characters.",
+    invalidSlug: "Use 1–64 letters, digits, - or _.",
+    slugReserved: "This slug is reserved by the app. Pick another.",
+    slugTaken: "This slug is already taken.",
+    invalidEmail: "Enter a valid email address.",
+    passwordTooShort: "The password must be at least 8 characters.",
+    invalidCredentials: "Wrong email or password.",
+    accountExists: "An account with this email already exists. Sign in instead.",
+  } as Record<string, string>,
+};

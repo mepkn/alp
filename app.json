@@ -22,10 +22,6 @@
       "package": "com.pknspace.alp",
       "softwareKeyboardLayoutMode": "resize"
     },
-    "web": {
-      "output": "static",
-      "favicon": "./assets/images/favicon.png"
-    },
     "plugins": [
       "expo-router",
       [
@@ -62,6 +58,10 @@
         "projectId": "0d135010-53c0-4260-aa2c-ee598a968352"
       }
     },
-    "owner": "mepkn"
+    "owner": "mepkn",
+    "platforms": [
+      "android",
+      "ios"
+    ]
   }
 }
