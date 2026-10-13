@@ -35,6 +35,8 @@ jobs:
       - name: Free disk space
         # The runner's ~14 GB free runs out during the Gradle build. These
         # preinstalled toolchains aren't used here.
+        # Runs before checkout, so mobile/ doesn't exist yet.
+        working-directory: .
         run: |
           sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL /usr/local/share/boost /usr/local/lib/node_modules /usr/share/swift
           sudo docker image prune --all --force >/dev/null || true
