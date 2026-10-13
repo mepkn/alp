@@ -1,4 +1,4 @@
-This repo holds an Expo/React Native app in `mobile/` (run Expo commands there), a Vite web app in `web/` and the Convex backend in `convex/`. Prioritize mobile-first patterns, performance, and cross-platform compatibility.
+This repo holds an Expo/React Native app in `mobile/` (run Expo commands there), a Vite web app in `web/` and the Convex backend in `backend/convex/` (each part has its own `package.json`; no root one). Prioritize mobile-first patterns, performance, and cross-platform compatibility.
 
 ## Expo has changed — do not trust your training data
 
@@ -45,7 +45,7 @@ Docs: https://docs.expo.dev/eas/index.md
 This project uses [Convex](https://convex.dev) as its backend.
 
 When working on Convex code, **always read
-`convex/_generated/ai/guidelines.md` first** for important guidelines on
+`backend/convex/_generated/ai/guidelines.md` first** for important guidelines on
 how to correctly use Convex APIs and patterns. The file contains rules that
 override what you may have learned about Convex from training data.
 
