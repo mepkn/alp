@@ -3,7 +3,8 @@
 A private link shortener at <https://alp.pknspace.com>. Only allowlisted emails can create and
 manage links; anyone can open a short link, e.g. `alp.pknspace.com/cv` redirects to the long URL.
 
-Platforms: web (a Vite SPA in `web/`, on the VPS) and Android (Expo, sideloaded APK).
+Platforms: web (a Vite SPA in `web/`, on the VPS) and Android (Expo in `mobile/`, sideloaded APK).
+The Convex backend in `convex/` serves both.
 
 ## Features
 
@@ -29,12 +30,15 @@ Requires Node 22.18+ (`.nvmrc` pins 22).
 ### 1. Install and run Convex locally
 
 ```sh
-npm install
-npm run web:install       # the web app has its own node_modules
+npm install               # backend: convex, tests
+npm run mobile:install    # the Android app has its own node_modules
+npm run web:install       # so does the web app
+printf 'EXPO_PUBLIC_CONVEX_URL=\nEXPO_PUBLIC_CONVEX_SITE_URL=\n' > .env.local   # first time only
 npx convex dev            # first run: choose a local deployment (no account needed)
 ```
 
-This writes `EXPO_PUBLIC_CONVEX_URL` to `.env.local`. Keep it running; it redeploys whenever `convex/` changes.
+This writes `EXPO_PUBLIC_CONVEX_URL` to `.env.local` (the empty line tells it the name; Expo isn't
+in the root `package.json`, so it would otherwise write `CONVEX_URL`). Both apps read this one file. Keep it running; it redeploys whenever `convex/` changes.
 
 > **Phone vs. local backend:** `127.0.0.1` on a phone is the phone itself.
 > - **Android emulator:** set `EXPO_PUBLIC_CONVEX_URL=http://10.0.2.2:3210`.
@@ -58,7 +62,7 @@ npx convex env set ALLOWED_EMAILS you@example.com   # comma-separated; nobody el
 ```sh
 npm run web:dev                  # web app on http://localhost:5173
 npm run android                  # build and install a development build on a USB phone
-npx expo start --dev-client      # Metro for the development build
+npm start                        # Metro for the development build
 ```
 
 ## Scripts
@@ -66,21 +70,23 @@ npx expo start --dev-client      # Metro for the development build
 | Command | What it does |
 |---|---|
 | `npx convex dev` | Local Convex backend with hot reload |
+| `npm run mobile:install` | Install the Android app's dependencies (`mobile/node_modules`) |
 | `npm run web:install` | Install the web app's dependencies (`web/node_modules`) |
+| `npm start` | Metro for the development build, with the root `.env.local` |
 | `npm run web:dev` | Vite dev server for the web app |
 | `npm run android` | Build and install the development build on a USB phone |
-| `npm run typecheck` | App and `convex/` typecheck |
-| `npm run lint` | ESLint (Expo config) |
+| `npm run typecheck` | `convex/` typecheck |
+| `npm run lint` | ESLint for `convex/` and `scripts/` |
 | `npm test` | convex-test: allowlist, ownership, slug and URL rules, redirect |
-| `npm run check` | Typecheck, lint and tests, for the Android app and `web/` |
-| `npm run icons` | Regenerate the app icon and splash images |
+| `npm run check` | Typecheck, lint and tests for the backend, then `mobile/` and `web/` |
+| `npm run icons` | Regenerate the app icon and splash images in `mobile/assets/images` |
 | `npm run deploy:backend` | Checks, then deploys `convex/` to production |
 | `npm run deploy:web` | Checks, builds `web/`, checks reserved slugs, rsyncs `web/dist/` to the VPS |
 | `npm run deploy:web:dry` | The same, but rsync only shows what would change |
 | `npm run build:android:preview` | Installable APK, built on EAS cloud |
-| `npm run build:android:preview:local` | The same APK, built on this Mac into `dist/` |
+| `npm run build:android:preview:local` | The same APK, built on this Mac into `mobile/dist/` |
 | `npm run build:android:production` | Play Store AAB on EAS cloud |
-| `npm run build:android:production:local` | The same AAB, built locally into `dist/` |
+| `npm run build:android:production:local` | The same AAB, built locally into `mobile/dist/` |
 | `npm run eas -- <args>` | Any other `eas` command as the personal account |
 
 ## Deployment
@@ -150,13 +156,13 @@ curl -sI https://alp.pknspace.com/no-such-slug | head -1     # 404
 
 ```sh
 npm run build:android:preview:local
-adb install -r dist/alp-preview-*.apk
+adb install -r mobile/dist/alp-preview-*.apk
 ```
 
 ## How it works
 
 - **The web app** (`web/`) is a separate Vite + React + shadcn/ui app with its own `package.json`: one page with the links list, server search, and create/edit in a dialog. It imports the backend from `../convex` through the `@convex` alias (`web/vite.config.ts` dedupes `convex` and `react` so `../convex` uses the web copies). In dev it reads `EXPO_PUBLIC_CONVEX_URL` from the root `.env.local`; `deploy:web` passes the production URL as `VITE_CONVEX_URL`.
-- **The Android app** (`src/`) uses Expo Router, NativeWind and React Native Reusables. The RNR primitives live in `src/components/ui/`, and screens only use the app's own wrappers in `src/components/cmp/cmp-*.tsx`. All strings are in `src/lib/strings.ts`.
+- **The Android app** (`mobile/`, own `package.json`) uses Expo Router, NativeWind and React Native Reusables. The RNR primitives live in `mobile/src/components/ui/`, and screens only use the app's own wrappers in `mobile/src/components/cmp/cmp-*.tsx`. All strings are in `mobile/src/lib/strings.ts`. It imports the backend through the `@convex` alias; `mobile/metro.config.js` watches `../convex` and resolves its packages from `mobile/node_modules`, so EAS builds need only the `mobile/` install. Its scripts load the root `.env.local` with `node --env-file-if-exists`.
   - `(app)/(tabs)`: Links and Search tabs (a labelled left sidebar from 768px wide).
   - `(app)/(tabs)/index`: the paginated list (`usePaginatedQuery`), loading more on scroll.
   - `(app)/(tabs)/search`: debounced, paginated server search (`links.search`, search index `search_text`).
@@ -168,5 +174,5 @@ adb install -r dist/alp-preview-*.apk
   - `lib/slugs.ts`: the slug pattern, the one reserved-slug list, target validation and the random slug. `scripts/check-reserved.mts` fails the web deploy if a new top-level file in `web/dist` isn't reserved. The old Expo route names stay reserved so existing links are unaffected.
   - `http.ts`: the Convex Auth routes and `GET /r/{slug}`, the only public endpoint.
   - `users.ts`: `me`, for the email in Settings.
-- **Share target** (Android): `expo-share-intent` registers a `SEND text/*` intent filter. The root layout takes the first `http(s)` URL from the shared text (`src/lib/share.ts`) and opens `/link/new?target=…`; a share that arrives signed out waits until sign-in. `+native-intent.tsx` keeps the share deep link from hitting not-found.
+- **Share target** (Android): `expo-share-intent` registers a `SEND text/*` intent filter. The root layout takes the first `http(s)` URL from the shared text (`mobile/src/lib/share.ts`) and opens `/link/new?target=…`; a share that arrives signed out waits until sign-in. `+native-intent.tsx` keeps the share deep link from hitting not-found.
 - **Auth tokens** are kept in `expo-secure-store` on Android and `localStorage` in the web app.
