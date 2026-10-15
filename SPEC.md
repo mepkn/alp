@@ -153,9 +153,9 @@ links: defineTable({
   - The system Caddy serves a file when one exists in `/var/www/alp`.
   - Every other path is proxied to the Convex HTTP action at `/r/<slug>`.
   - Proxying through Caddy means Convex's paid custom-domain feature isn't needed.
-  - One-time VPS setup (done by me; needs sudo):
+  - One-time VPS setup (done; no sudo needed):
     - `DEPLOY_DIR=/var/www/alp`, owned by the deploy user.
-    - Replace `<prod>` with the prod deployment name and add this block to `/etc/caddy/Caddyfile`:
+    - Replace `<prod>` with the prod deployment name and put this block in `/etc/caddy/sites/alp.caddy`:
     ```caddy
     http://alp.pknspace.com:8080 {
           root * /var/www/alp
