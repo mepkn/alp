@@ -5,6 +5,7 @@ import {
   internalMutation,
   internalQuery,
   mutation,
+  type MutationCtx,
   query,
   type QueryCtx,
 } from "./_generated/server";
@@ -21,7 +22,7 @@ async function requireOwnLink(ctx: QueryCtx, userId: Id<"users">, id: Id<"links"
   return link;
 }
 
-function findBySlug(ctx: QueryCtx, slug: string) {
+export function findBySlug(ctx: QueryCtx, slug: string) {
   return ctx.db
     .query("links")
     .withIndex("by_slug", (q) => q.eq("slug", slug))
@@ -85,42 +86,49 @@ export const get = query({
 
 const RANDOM_SLUG_ATTEMPTS = 10;
 
+// Shared by create and kunji's shorten_url: checks the target, takes the
+// requested slug if it's free, otherwise picks a random one.
+export async function insertLink(ctx: MutationCtx, userId: Id<"users">, rawTarget: string, rawSlug?: string) {
+  const target = rawTarget.trim();
+  checkTarget(target);
+
+  let slug: string;
+  const requested = rawSlug?.trim();
+  if (requested) {
+    const error = slugError(requested);
+    if (error) throw new ConvexError(error);
+    if ((await findBySlug(ctx, requested)) !== null) throw new ConvexError("slugTaken");
+    slug = requested;
+  } else {
+    let found: string | undefined;
+    for (let i = 0; i < RANDOM_SLUG_ATTEMPTS && found === undefined; i++) {
+      const candidate = randomSlug();
+      if (slugError(candidate) === null && (await findBySlug(ctx, candidate)) === null) {
+        found = candidate;
+      }
+    }
+    if (found === undefined) throw new ConvexError("slugTaken");
+    slug = found;
+  }
+
+  const _id = await ctx.db.insert("links", {
+    userId,
+    slug,
+    target,
+    enabled: true,
+    clicks: 0,
+    updatedAt: Date.now(),
+    searchText: searchText(slug, target),
+  });
+  return { _id, slug, target };
+}
+
 export const create = mutation({
   args: { target: v.string(), slug: v.optional(v.string()) },
   returns: v.object({ _id: v.id("links"), slug: v.string() }),
   handler: async (ctx, args) => {
     const userId = await requireUserId(ctx);
-    const target = args.target.trim();
-    checkTarget(target);
-
-    let slug: string;
-    const requested = args.slug?.trim();
-    if (requested) {
-      const error = slugError(requested);
-      if (error) throw new ConvexError(error);
-      if ((await findBySlug(ctx, requested)) !== null) throw new ConvexError("slugTaken");
-      slug = requested;
-    } else {
-      let found: string | undefined;
-      for (let i = 0; i < RANDOM_SLUG_ATTEMPTS && found === undefined; i++) {
-        const candidate = randomSlug();
-        if (slugError(candidate) === null && (await findBySlug(ctx, candidate)) === null) {
-          found = candidate;
-        }
-      }
-      if (found === undefined) throw new ConvexError("slugTaken");
-      slug = found;
-    }
-
-    const _id = await ctx.db.insert("links", {
-      userId,
-      slug,
-      target,
-      enabled: true,
-      clicks: 0,
-      updatedAt: Date.now(),
-      searchText: searchText(slug, target),
-    });
+    const { _id, slug } = await insertLink(ctx, userId, args.target, args.slug);
     return { _id, slug };
   },
 });

@@ -97,7 +97,7 @@ describe("GET /kunji/tools", () => {
     const { t } = await setup();
     const res = await t.fetch("/kunji/tools", { headers: { Authorization: `Bearer ${SECRET}` } });
     const tools = (await res.json()) as { name: string; inputSchema: { type: string } }[];
-    expect(tools.map((x) => x.name)).toEqual(["list_links"]);
+    expect(tools.map((x) => x.name)).toEqual(["list_links", "shorten_url", "set_link_enabled"]);
     expect(tools.every((x) => x.inputSchema.type === "object" && /^[a-z][a-z0-9_]{0,63}$/.test(x.name))).toBe(true);
   });
 });
@@ -171,5 +171,46 @@ describe("POST /kunji/call", () => {
     expect(limited.result.links).toHaveLength(2);
     expect(limited.result.more).toBe(true);
     expect(await call(t, "list_links", { limit: "2" })).toMatchObject({ ok: false, error: { code: "bad_input" } });
+  });
+
+  it("shorten_url creates a link with the given or a random slug", async () => {
+    const { t, userId } = await setup();
+    expect(await call(t, "shorten_url", { url: " https://example.org/a ", slug: "ex" })).toEqual({
+      ok: true,
+      result: { slug: "ex", shortUrl: "https://alp.pknspace.com/ex", target: "https://example.org/a" },
+    });
+    const random = (await call(t, "shorten_url", { url: "https://example.org/b" })).result;
+    expect(random.slug).toMatch(/^[A-Za-z0-9_-]{6}$/);
+    const mine = await t.run((ctx) => ctx.db.query("links").withIndex("by_user", (q) => q.eq("userId", userId)).collect());
+    expect(mine.find((l) => l.slug === "ex")).toMatchObject({ enabled: true, clicks: 0, target: "https://example.org/a" });
+    // Found by list_links search like links made in the app.
+    expect((await call(t, "list_links", { query: "org" })).result.links.map((l: { slug: string }) => l.slug)).toContain("ex");
+  });
+
+  it("shorten_url refuses taken, reserved and bad slugs and bad URLs as sentences", async () => {
+    const { t } = await setup();
+    const err = async (input: object) => (await call(t, "shorten_url", input)).error;
+    expect(await err({ url: "https://x.com", slug: "secret" })).toEqual({ code: "tool_error", message: expect.stringMatching(/already taken/) });
+    expect(await err({ url: "https://x.com", slug: "api" })).toMatchObject({ message: expect.stringMatching(/reserved/) });
+    expect(await err({ url: "https://x.com", slug: "a b" })).toMatchObject({ message: expect.stringMatching(/letters, digits/) });
+    expect(await err({ url: "ftp://x.com" })).toMatchObject({ message: expect.stringMatching(/http/) });
+    expect(await err({ url: "https://alp.pknspace.com/gh" })).toMatchObject({ message: expect.stringMatching(/alp link/) });
+  });
+
+  it("set_link_enabled turns only the user's own link on and off", async () => {
+    const { t } = await setup();
+    expect(await call(t, "set_link_enabled", { slug: "gh", enabled: false })).toEqual({
+      ok: true,
+      result: { slug: "gh", shortUrl: "https://alp.pknspace.com/gh", enabled: false, changed: true },
+    });
+    expect((await call(t, "set_link_enabled", { slug: "gh", enabled: false })).result.changed).toBe(false);
+    const gh = await t.run((ctx) => ctx.db.query("links").withIndex("by_slug", (q) => q.eq("slug", "gh")).unique());
+    expect(gh).toMatchObject({ enabled: false, clicks: 7, target: "https://github.com/mepkn" });
+    expect((await call(t, "set_link_enabled", { slug: "cv", enabled: true })).result.enabled).toBe(true);
+    for (const slug of ["secret", "GH", "nope"]) {
+      expect(await call(t, "set_link_enabled", { slug, enabled: false })).toMatchObject({ ok: false, error: { code: "tool_error" } });
+    }
+    const secret = await t.run((ctx) => ctx.db.query("links").withIndex("by_slug", (q) => q.eq("slug", "secret")).unique());
+    expect(secret?.enabled).toBe(true);
   });
 });
