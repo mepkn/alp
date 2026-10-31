@@ -12,8 +12,11 @@ import type * as auth from "../auth.js";
 import type * as http from "../http.js";
 import type * as lib_access from "../lib/access.js";
 import type * as lib_allowlist from "../lib/allowlist.js";
+import type * as lib_env from "../lib/env.js";
 import type * as lib_slugs from "../lib/slugs.js";
 import type * as links from "../links.js";
+import type * as migrations from "../migrations.js";
+import type * as otp from "../otp.js";
 import type * as users from "../users.js";
 
 import type {
@@ -27,8 +30,11 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   "lib/access": typeof lib_access;
   "lib/allowlist": typeof lib_allowlist;
+  "lib/env": typeof lib_env;
   "lib/slugs": typeof lib_slugs;
   links: typeof links;
+  migrations: typeof migrations;
+  otp: typeof otp;
   users: typeof users;
 }>;
 
