@@ -17,7 +17,6 @@ import type * as lib_env from "../lib/env.js";
 import type * as lib_kunji from "../lib/kunji.js";
 import type * as lib_slugs from "../lib/slugs.js";
 import type * as links from "../links.js";
-import type * as migrations from "../migrations.js";
 import type * as otp from "../otp.js";
 import type * as users from "../users.js";
 
@@ -37,7 +36,6 @@ declare const fullApi: ApiFromModules<{
   "lib/kunji": typeof lib_kunji;
   "lib/slugs": typeof lib_slugs;
   links: typeof links;
-  migrations: typeof migrations;
   otp: typeof otp;
   users: typeof users;
 }>;
