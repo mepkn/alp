@@ -15,6 +15,9 @@ The Convex backend in `backend/` serves both. There is no root `package.json`: `
 - Slugs: 1–64 of `[A-Za-z0-9_-]`, case-sensitive, unique across the app. App routes and static files are reserved.
 - Targets: absolute `http:`/`https:` URLs up to 2048 characters, never on `alp.pknspace.com` itself.
 - Android: share a URL from any app into alp, and New link opens with it filled in.
+- Accounts by email and password; sign-up confirms the email with a 6-digit code, and "Forgot password?" resets it with one. Only emails in `ALLOWED_EMAILS` can sign up or sign in.
+- Tools for AI clients through [kunji](https://kunji.pknspace.com): `list_links`, `shorten_url`, `set_link_enabled`.
+- Android update check: on launch (and Settings → Check for updates) the app compares its build with the latest GitHub release, downloads the new APK, opens Android's installer, and deletes the downloaded APK on the next launch.
 - Light, dark or system theme.
 
 ## Stack
@@ -105,7 +108,8 @@ and the Android app built with EAS.
   `npx convex deployment token create alp-deploy --deployment praveen-nirmalkar:alp:production --save-env .env.prod.local`.
 - `mobile/.eas-token` (git-ignored) holds `export EXPO_TOKEN=...` for the personal Expo account. The scripts read it, so the global `eas` login is never used or changed.
 - On the production Convex deployment: `JWT_PRIVATE_KEY`, `JWKS` (`npx @convex-dev/auth --prod`),
-  `SITE_URL=https://alp.pknspace.com` and `ALLOWED_EMAILS`.
+  `SITE_URL=https://alp.pknspace.com` and `ALLOWED_EMAILS`; `RESEND_API_KEY` (sends the codes; set with
+  `../scripts/set-resend-key.sh alp`); `KUNJI_SECRET` and `KUNJI_URL` (from alp's page in kunji).
 - The EAS environments `preview` and `production` have `EXPO_PUBLIC_CONVEX_URL` set to the production URL.
 - VPS: `DEPLOY_DIR=/var/www/alp`, owned by the deploy user. System Caddy block, with `<prod>`
   replaced by the production deployment name:
@@ -176,7 +180,10 @@ adb install -r mobile/dist/alp-preview-*.apk
   - `auth.ts`: Convex Auth with the Password provider. `profile()` runs for sign-up and sign-in before anything is stored and refuses emails not in `ALLOWED_EMAILS` with a generic `notAllowed`. `lib/access.ts` `requireUserId` re-checks the list on every call, so removing an email also ends that user's sessions.
   - `links.ts`: `list`, `get`, `create`, `update`, `remove` for the signed-in owner; every id passed in is loaded and its `userId` checked (`linkNotFound` otherwise). `resolve` (internalQuery) and `recordClick` (internalMutation) serve the redirect only.
   - `lib/slugs.ts`: the slug pattern, the one reserved-slug list, target validation and the random slug. `scripts/check-reserved.mts` fails the web deploy if a new top-level file in `web/dist` isn't reserved. The old Expo route names stay reserved so existing links are unaffected.
-  - `http.ts`: the Convex Auth routes and `GET /r/{slug}`, the only public endpoint.
+  - `otp.ts`: the 6-digit codes for sign-up verification and password reset, sent by Resend from `Alp <noreply@send.pknspace.com>`. Without `RESEND_API_KEY` (local dev) the code is only logged in the `npx convex dev` output.
+  - `http.ts`: the Convex Auth routes, kunji's `/kunji/*` routes and `GET /r/{slug}`, the only public endpoint.
+  - `kunji.ts` + `lib/kunji.ts`: the kunji app contract (secret check, input check, the single verified user by email). `list_links` reads; `shorten_url` shares `insertLink` with `links.create`; `set_link_enabled` turns one of the user's links on or off by slug. Nothing edits a target or deletes a link.
   - `users.ts`: `me`, for the email in Settings.
 - **Share target** (Android): `expo-share-intent` registers a `SEND text/*` intent filter. The root layout takes the first `http(s)` URL from the shared text (`mobile/src/lib/share.ts`) and opens `/link/new?target=…`; a share that arrives signed out waits until sign-in. `+native-intent.tsx` keeps the share deep link from hitting not-found.
+- **Updates** (`mobile/src/lib/update.ts`): the Release workflow builds with `EXPO_PUBLIC_COMMIT` set to the short SHA, the same as the release tag. On launch the app asks GitHub for the latest release; a different tag offers the update. The APK is downloaded to the app's cache (`update/`) and opened with `INSTALL_PACKAGE` (needs `REQUEST_INSTALL_PACKAGES`; Android asks once to allow installs from alp). Every launch deletes that folder. Builds without a SHA (local, dev) skip the check.
 - **Auth tokens** are kept in `expo-secure-store` on Android and `localStorage` in the web app.
