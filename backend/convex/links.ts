@@ -49,7 +49,7 @@ export const list = query({
 
 // Splits URLs and slugs into plain words ("https://a.com/x-y" → "https a com x y")
 // so each part is searchable. Used on both the stored text and the query.
-const searchWords = (text: string) =>
+export const searchWords = (text: string) =>
   text.replace(/[^\p{L}\p{N}]+/gu, " ").trim();
 const searchText = (slug: string, target: string) => searchWords(`${slug} ${target}`);
 

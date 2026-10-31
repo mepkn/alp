@@ -2,11 +2,14 @@ import { httpRouter } from "convex/server";
 import { internal } from "./_generated/api";
 import { httpAction } from "./_generated/server";
 import { auth } from "./auth";
+import { tools } from "./kunji";
+import { addKunjiRoutes } from "./lib/kunji";
 import { SLUG_PATTERN } from "./lib/slugs";
 
 const http = httpRouter();
 
 auth.addHttpRoutes(http);
+addKunjiRoutes(http, { tools, access: internal.kunji.access });
 
 const NOT_FOUND_HTML =
   '<!doctype html><meta charset="utf-8"><title>Not found</title><p>This link doesn\'t exist.</p>';
