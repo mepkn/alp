@@ -3,8 +3,8 @@
 A private link shortener at `https://alp.pknspace.com`. **Only I can create and manage links.
 Anyone can open a short link**, e.g. `alp.pknspace.com/cv` redirects to the long URL.
 
-Sister project of `../yaad-dila` and `../scratch` (Expo + Convex). **Copy their structure, scripts and
-conventions** wherever this spec doesn't say otherwise. Read yaad-dila's README, `convex/auth.ts`,
+Sister project of `../suchna` and `../scratch` (Expo + Convex). **Copy their structure, scripts and
+conventions** wherever this spec doesn't say otherwise. Read suchna's README, `convex/auth.ts`,
 `convex/lib/allowlist.ts`, `convex/lib/access.ts`, `scripts/` and `src/components/cmp/`, and
 `../scratch/SPEC.md`, before starting.
 
@@ -42,7 +42,7 @@ Same as scratch:
     that user's sessions.
   - **Fails closed:** if it's unset or empty, nobody can sign in.
   - Generic `ConvexError("notAllowed")`, shown as "This account isn't allowed to use this app."
-  - Copy `isAllowedEmail` from `../yaad-dila/convex/lib/allowlist.ts`, unchanged.
+  - Copy `isAllowedEmail` from `../suchna/convex/lib/allowlist.ts`, unchanged.
 - Set it on **every** deployment (local and prod): `npx convex env set ALLOWED_EMAILS <email>`.
   **Ask me which email to use; don't put it in the repo.**
 - **Links are owned per user** (`userId`), and management queries only return the caller's own
@@ -84,12 +84,12 @@ links: defineTable({
   - It looks up the slug. If the link exists and is enabled, it records the click and returns `302` with `Location: target` and `Cache-Control: no-store`, so clicks are counted.
   - Otherwise it returns a `404` with a tiny HTML body.
 - Error codes are plain-string `ConvexError`s (`notAuthenticated`, `notAllowed`, `linkNotFound`,
-  `invalidUrl`, `targetTooLong`, `invalidSlug`, `slugReserved`, `slugTaken`). The client translates them like yaad-dila's `src/lib/errors.ts`.
+  `invalidUrl`, `targetTooLong`, `invalidSlug`, `slugReserved`, `slugTaken`). The client translates them like suchna's `src/lib/errors.ts`.
 - **Read `convex/_generated/ai/guidelines.md` before writing Convex code.**
 
 ## Screens (Expo Router)
 
-- `(auth)/sign-in`, `(auth)/sign-up`: the same form component as yaad-dila.
+- `(auth)/sign-in`, `(auth)/sign-up`: the same form component as suchna.
 - `(app)/(tabs)`: two tabs, Links and Search. Bottom tabs on phones; from 768px wide a labelled sidebar
   on the left. The settings gear is in the Links header.
 - `(app)/(tabs)/index`: the link list with a "New link" button; the next page loads on scroll.
@@ -119,7 +119,7 @@ links: defineTable({
   - Lists with a search box at the top, and screens without inputs, need nothing.
   - No fixed offsets such as `mb-[40vh]`, no RN `KeyboardAvoidingView`, no bottom sheets.
 - `@/` → `src/`, `@convex/` → `convex/`. Node 22.18+ (`.nvmrc` = 22).
-- Scripts (copy from yaad-dila and scratch):
+- Scripts (copy from suchna and scratch):
   - `typecheck`, `lint`, `test`, and `check` (all three)
   - `deploy:backend` (reads `CONVEX_DEPLOY_KEY` from `.env.prod.local` with the shared literal read loop)
   - `deploy:web` and `deploy:web:dry`
@@ -134,7 +134,7 @@ links: defineTable({
   - redirect: enabled → 302 and the click is counted; disabled or unknown → 404
   - Stub `ALLOWED_EMAILS` with `vi.stubEnv` in the test helper.
 - Repo files:
-  - README (same layout as yaad-dila)
+  - README (same layout as suchna)
   - `.env.example` (lists `ALLOWED_EMAILS` under the Convex-side vars and the deploy vars as placeholders)
   - AGENTS.md, CLAUDE.md, LICENSE
   - `.gitignore` covering `.env*.local` and `.eas-token`
